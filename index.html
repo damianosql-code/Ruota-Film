@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1" />
+<title>Ruota dei Film</title>
+<style>
+  :root {
+    --size: min(92vw, 520px);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
+    background: linear-gradient(180deg, #0f172a, #081126);
+    color: white;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+  }
+
+  .wheel-area {
+    position: relative;
+    width: var(--size);
+    height: var(--size);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1rem;
+  }
+
+  .wheel-rotator {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    overflow: hidden;
+    will-change: transform;
+    transition: transform 4s cubic-bezier(.12,.9,.22,1);
+  }
+
+  canvas#wheel {
+    width: 100%;
+    height: 100%;
+    display: block;
+    border-radius: 50%;
+  }
+
+  /* Triangolo capovolto (punta in giù) */
+  .pointer {
+    position: absolute;
+    top: -20px;
+    left: 50%;
+    transform: translateX(-50%) rotate(360deg);
+    width: 0;
+    height: 0;
+    border-left: 18px solid transparent;
+    border-right: 18px solid transparent;
+    border-top: 28px solid #ffcb05;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.6));
+    z-index: 5;
+  }
+
+  button#spin {
+    background: linear-gradient(180deg, #ff6b6b, #ff3b3b);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    padding: 14px 32px;
+    font-size: 1rem;
+    font-weight: 700;
+    box-shadow: 0 6px 18px rgba(255,59,59,0.18);
+    cursor: pointer;
+  }
+  button#spin:active { transform: translateY(1px); }
+
+  .result-overlay {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 20;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+  }
+  .result-overlay.show { display: flex; }
+
+  .result-text {
+    font-size: 2.5rem;
+    font-weight: 900;
+    color: #ffd400;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.6);
+    background: rgba(0,0,0,0.5);
+    padding: 10px 20px;
+    border-radius: 10px;
+  }
+
+  canvas#confetti {
+    position: fixed;
+    left: 0; top: 0;
+    width: 100vw; height: 100vh;
+    pointer-events: none;
+    z-index: 40;
+  }
+
+  .hint {
+    margin-top: 12px;
+    font-size: 14px;
+    color: rgba(255,255,255,0.7);
+  }
+</style>
+</head>
+<body>
+  <div class="wheel-area">
+    <div class="pointer"></div>
+    <div class="wheel-rotator" id="rotator">
+      <canvas id="wheel" width="800" height="800"></canvas>
+    </div>
+    <div class="result-overlay" id="result">
+      <div class="result-text">PORNHUB.COM</div>
+    </div>
+  </div>
+
+  <button id="spin">Gira</button>
+  <div class="hint">Ruota con 10 spicchi. Premi "Gira" per avviare.</div>
+
+  <canvas id="confetti"></canvas>
+
+<script>
+const films = [
+  "The Godfather","Pulp Fiction","Inception","The Dark Knight",
+  "Forrest Gump","The Shawshank Redemption","Fight Club",
+  "The Matrix","Titanic","Star Wars"
+];
+const colors = [
+  "#ff7b7b","#ffd166","#90e0ef","#8ecae6","#a0d995",
+  "#ffc6ff","#ffd6a5","#cdb4db","#bde0fe","#fef3c7"
+];
+const wheelCanvas = document.getElementById("wheel");
+const ctx = wheelCanvas.getContext("2d");
+const slices = films.length;
+
+function drawWheel() {
+  const rect = wheelCanvas.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  wheelCanvas.width = rect.width * dpr;
+  wheelCanvas.height = rect.height * dpr;
+  ctx.resetTransform();
+  ctx.scale(dpr, dpr);
+
+  const size = rect.width;
+  const cx = size / 2;
+  const cy = size / 2;
+  const radius = size / 2;
+  const sliceAngle = (2 * Math.PI) / slices;
+
+  ctx.clearRect(0, 0, size, size);
+  ctx.translate(cx, cy);
+
+  for (let i = 0; i < slices; i++) {
+    const start = i * sliceAngle;
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.arc(0, 0, radius, start, start + sliceAngle);
+    ctx.closePath();
+    ctx.fillStyle = colors[i % colors.length];
+    ctx.fill();
+
+    ctx.save();
+    ctx.rotate(start + sliceAngle / 2);
+    ctx.textAlign = "center";
+    ctx.fillStyle = "#111";
+    ctx.font = `${Math.floor(size / 20)}px sans-serif`;
+    ctx.fillText(films[i], radius * 0.6, 0);
+    ctx.restore();
+  }
+
+  ctx.beginPath();
+  ctx.arc(0, 0, radius * 0.1, 0, Math.PI * 2);
+  ctx.fillStyle = "#fff";
+  ctx.fill();
+  ctx.resetTransform();
+}
+
+drawWheel();
+window.addEventListener("resize", drawWheel);
+
+const rotator = document.getElementById("rotator");
+const spinBtn = document.getElementById("spin");
+const resultEl = document.getElementById("result");
+let spinning = false;
+let currentRotation = 0;
+
+spinBtn.addEventListener("click", () => {
+  if (spinning) return;
+  spinning = true;
+  spinBtn.disabled = true;
+  spinBtn.textContent = "Girando…";
+
+  const fullSpins = 5 + Math.random() * 3;
+  const finalDeg = fullSpins * 360 + Math.random() * 360;
+
+  rotator.style.transition = "transform 4s cubic-bezier(.12,.9,.22,1)";
+  currentRotation += finalDeg;
+  rotator.style.transform = `rotate(${currentRotation}deg)`;
+
+  rotator.addEventListener("transitionend", onEnd, { once: true });
+});
+
+function onEnd() {
+  resultEl.classList.add("show");
+  createConfetti();
+  setTimeout(() => {
+    resultEl.classList.remove("show");
+    spinning = false;
+    spinBtn.disabled = false;
+    spinBtn.textContent = "Gira";
+  }, 6000);
+}
+
+/* Confetti semplice */
+const confettiCanvas = document.getElementById("confetti");
+const cctx = confettiCanvas.getContext("2d");
+function resizeConfetti() {
+  confettiCanvas.width = window.innerWidth;
+  confettiCanvas.height = window.innerHeight;
+}
+resizeConfetti();
+window.addEventListener("resize", resizeConfetti);
+
+let confetti = [];
+function createConfetti() {
+  confetti = [];
+  for (let i = 0; i < 100; i++) {
+    confetti.push({
+      x: Math.random() * window.innerWidth,
+      y: Math.random() * -50,
+      r: Math.random() * 6 + 4,
+      c: colors[Math.floor(Math.random() * colors.length)],
+      vy: Math.random() * 3 + 2,
+      vx: Math.random() * 2 - 1
+    });
+  }
+  animateConfetti();
+}
+
+function animateConfetti() {
+  cctx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+  confetti.forEach((p) => {
+    p.x += p.vx;
+    p.y += p.vy;
+    cctx.beginPath();
+    cctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+    cctx.fillStyle = p.c;
+    cctx.fill();
+  });
+  confetti = confetti.filter(p => p.y < window.innerHeight);
+  if (confetti.length > 0) requestAnimationFrame(animateConfetti);
+}
+</script>
+</body>
+</html>
