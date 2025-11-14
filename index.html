@@ -47,7 +47,6 @@
     border-radius: 50%;
   }
 
-  /* Triangolo capovolto (punta in giù) */
   .pointer {
     position: absolute;
     top: -20px;
@@ -114,6 +113,10 @@
 </style>
 </head>
 <body>
+
+  <!-- AUDIO -->
+  <audio id="bgmusic" src="peppa.mp3"></audio>
+
   <div class="wheel-area">
     <div class="pointer"></div>
     <div class="wheel-rotator" id="rotator">
@@ -132,6 +135,7 @@
 <script>
 const films = [
   "The Godfather","Pulp Fiction","Inception","The Dark Knight",
+  "Forrest Gump","The Shawshank Redemption","Fight Club",
   "Forrest Gump","Trainspotting","Fight Club",
   "The Matrix","Titanic","Star Wars"
 ];
@@ -195,6 +199,10 @@ let spinning = false;
 let currentRotation = 0;
 
 spinBtn.addEventListener("click", () => {
+
+  /* ➜ AVVIO AUDIO QUI */
+  document.getElementById("bgmusic").play();
+
   if (spinning) return;
   spinning = true;
   spinBtn.disabled = true;
@@ -221,7 +229,7 @@ function onEnd() {
   }, 6000);
 }
 
-/* Confetti semplice */
+/* Confetti */
 const confettiCanvas = document.getElementById("confetti");
 const cctx = confettiCanvas.getContext("2d");
 function resizeConfetti() {
@@ -263,5 +271,3 @@ function animateConfetti() {
 </script>
 </body>
 </html>
-
-
